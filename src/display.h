@@ -13,6 +13,6 @@ void initialize();
 void showSegment(uint8_t segment, uint8_t pos, uint32_t color);
 void showColons(uint32_t color);
 void showStaticClock(const std::vector<int>& digits_to_display, uint32_t color, uint8_t brightness);
-void showWormMode(const std::vector<int>& digits_to_display, uint32_t color, uint8_t brightness);
+void showWormMode(uint32_t color, uint8_t brightness, int timePerCycleMs = 5000);
 
 #endif

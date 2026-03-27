@@ -134,67 +134,62 @@ void showStaticClock(const std::vector<int>& digits_to_display, uint32_t color, 
   _strip.show();
 }
 
-void showWormMode(const std::vector<int>& digits_to_display, uint32_t color, uint8_t brightness)
+void showWormMode(uint32_t color, uint8_t brightness, int timePerCycleMs)
 {
   _strip.clear();
   
-  // Get all active LED indices for the current time
-  std::vector<int> activeLeds;
+  // Build list of active segments for all digits in an "8" loop pattern
+  // Starting at top, tracing around the 8, passing through middle twice
+  std::vector<std::pair<int, int>> activeSegments;
+  
+  // Define the 8-pattern: segments in order
+  // 0=top, 1=top-left, 2=top-right, 3=middle, 4=bottom-left, 5=bottom-right, 6=bottom
+  const int segmentOrder[] = {0, 1, 6, 4, 3, 2, 6, 5, 0};  // Creates the 8 pattern with middle twice
+  
   for (int d = 0; d < _numberOfDigits; d++) {
-    if (d >= (int)digits_to_display.size()) continue;
+    for (int seg : segmentOrder) {
+      activeSegments.push_back({d, seg});
+    }
+  }
+  
+  if (activeSegments.empty()) {
+    _strip.show();
+    return;
+  }
+  
+  // Calculate worm position within the active segments list (completes one cycle per 5 seconds)
+  unsigned long cycleMillis = (millis() % timePerCycleMs);
+  int wormPosition = (int)((cycleMillis / (float)timePerCycleMs) * activeSegments.size()) % activeSegments.size();
+  
+  // Draw worm with fade trail through the active segments
+  for (int i = 0; i < _wormLength; i++) {
+    int segIdx = (wormPosition + i) % activeSegments.size();
+    int digitPos = activeSegments[segIdx].first;
+    int segment = activeSegments[segIdx].second;
     
-    int digitIdx = digits_to_display[d];
-    if (digitIdx < 0 || digitIdx >= 10) continue;
+    // Brightest at the front of the worm, dimmer towards the tail
+    float brightnessFactor = 1.0f - (float)i / _wormLength;
+    uint8_t r = ((color >> 16) & 0xFF) * brightnessFactor;
+    uint8_t g = ((color >> 8) & 0xFF) * brightnessFactor;
+    uint8_t b = (color & 0xFF) * brightnessFactor;
+    uint32_t dimmedColor = _strip.Color(r, g, b);
     
-    for (int s = 0; s < _numberOfSegments; s++) {
-      if (_digits[digitIdx][s]) {
-        uint8_t idx = s + _digitPositions[d] * _numberOfSegments;
-        if (idx < _numberOfDigits * _numberOfSegments) {
-          for (int i = _segGroups[idx][0]; i <= _segGroups[idx][1]; i++) {
-            if (i < NUM_LEDS) activeLeds.push_back(i);
-          }
-          for (int i = _segGroups[idx][2]; i <= _segGroups[idx][3]; i++) {
-            if (i < NUM_LEDS) activeLeds.push_back(i);
-          }
+    // Light up the complete segment
+    uint8_t idx = segment + _digitPositions[digitPos] * _numberOfSegments;
+    if (idx < _numberOfDigits * _numberOfSegments) {
+      for (int ledIdx = _segGroups[idx][0]; ledIdx <= _segGroups[idx][1]; ledIdx++) {
+        if (ledIdx < NUM_LEDS) {
+          _strip.setPixelColor(ledIdx, dimmedColor);
+        }
+      }
+      for (int ledIdx = _segGroups[idx][2]; ledIdx <= _segGroups[idx][3]; ledIdx++) {
+        if (ledIdx < NUM_LEDS) {
+          _strip.setPixelColor(ledIdx, dimmedColor);
         }
       }
     }
   }
   
-  // Add colons
-  for (int i = 0; i < _colonCount; i++) {
-    if (_segGroupsColons[i] < NUM_LEDS) activeLeds.push_back(_segGroupsColons[i]);
-  }
-  
-  // Calculate worm position (completes one cycle per 5 seconds = 5000ms)
-  unsigned long cycleMillis = (millis() % 5000);
-  int wormPosition = (cycleMillis / (5000 / NUM_LEDS)) % NUM_LEDS;
-  
-  // Draw worm with fade trail
-  for (int i = 0; i < _wormLength; i++) {
-    int ledIdx = (wormPosition + i) % NUM_LEDS;
-    
-    // Check if this LED is part of the active time display
-    bool isActive = false;
-    for (int activeLed : activeLeds) {
-      if (activeLed == ledIdx) {
-        isActive = true;
-        break;
-      }
-    }
-    
-    if (isActive) {
-      // Brightest at the front of the worm, dimmer towards the tail
-      float brightness = 1.0f - (float)i / _wormLength;
-      uint8_t r = ((color >> 16) & 0xFF) * brightness;
-      uint8_t g = ((color >> 8) & 0xFF) * brightness;
-      uint8_t b = (color & 0xFF) * brightness;
-      uint32_t dimmedColor = _strip.Color(r, g, b);
-      _strip.setPixelColor(ledIdx, dimmedColor);
-    }
-  }
-  
   _strip.setBrightness(brightness);
-
   _strip.show();
 }

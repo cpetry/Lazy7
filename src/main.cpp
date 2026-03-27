@@ -17,9 +17,12 @@ bool _buttonState = false;
 bool _lastButtonState = false;
 bool _toggledState = false; // This is the variable to toggle
 
+const uint32_t _pastelRed = 0xFF443C; // pastel red
+const uint32_t _pastelYellow = 0xFF953B; // pastel yellow
 
 // Germany TZ string: CET/CEST with automatic DST
 BrightnessLevel _brightnessLevel = MEDIUM;
+ConnectionState _connectionState = NONE;
 
 std::array<int, 4> getTime()
 {
@@ -108,19 +111,44 @@ void AdjustNightMode(int hour)
     }
 }
 
+void ShowWifiConnectionState()
+{
+    uint32_t color = hexToColor(_pastelRed);
+    showWormMode(color, _brightnessMedium, 5000);
+}
+
+void ShowTimeSyncState()
+{
+    uint32_t color = hexToColor(_pastelYellow);
+    showWormMode(color, _brightnessMedium, 5000);
+}
+
 void setup() 
 {
   Serial.begin(115200);
   initialize();
-
-  connectWiFiWithTimeout();
+  initializeWifi();
+  connectWiFi();
 
   pinMode(BUTTON_PIN, INPUT_PULLUP); // Button pin as input with pullup
 }
 
 void loop() 
 {
-  checkTimeSync();
+  _connectionState = checkTimeSync();
+
+  if (_connectionState == NONE)
+  {
+    ShowWifiConnectionState();
+    return;
+  }
+  else if (_connectionState == WIFI_CONNECTED)
+  {
+    ShowTimeSyncState();
+    return;
+  }
+
+
   listenToButtonPress();
 
   // Build digits_to_display as std::vector

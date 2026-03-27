@@ -7,7 +7,7 @@
 constexpr int DATA_PIN = 13;
 constexpr int BUTTON_PIN = 12;
 constexpr int NUM_LEDS = 252;
-constexpr int _wormLength = 3;
+constexpr int _wormLength = 5;
 constexpr int _colonCount = 12;
 
 constexpr bool _showLeadingZero = false; // Show leading zero in hour if true
@@ -15,6 +15,7 @@ constexpr bool _use24h = true;          // Use 24h mode if true, else 12h mode
 constexpr bool _showPoints = true;      // Show points between hours and minutes
 
 enum BrightnessLevel { MIN = 30, MEDIUM = 50, MAX = 75 };
+enum ConnectionState { NONE = 0, WIFI_CONNECTED = 1, TIME_SYNCED = 2 };
 
 enum class TriState { False, True, Unknown };
 enum ButtonMode { COLOR, BRIGHTNESS };

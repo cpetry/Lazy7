@@ -4,7 +4,10 @@
 #include <WiFi.h>
 #include <time.h>
 
-void connectWiFiWithTimeout(unsigned long timeoutMs = 15000);
-void checkTimeSync();
+#include "config.h"
+
+void initializeWifi();
+void connectWiFi();
+ConnectionState checkTimeSync();
 
 #endif
